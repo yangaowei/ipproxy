@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -38,7 +39,7 @@ var (
 	MYSQL_CONN_STR           string = mysqlconnstring // mysql连接字符串
 	MYSQL_CONN_CAP           int    = mysqlconncap    // mysql连接池容量
 	MYSQL_MAX_ALLOWED_PACKET int    = mysqlmaxallowedpacketmb << 20
-	DB_NAME                  string = "jumpserver"
+	DB_NAME                  string = "ipproxy"
 )
 
 func DB() (*sql.DB, error) {
@@ -75,6 +76,12 @@ func (m *MyTable) Clone() *MyTable {
 //设置表名
 func (self *MyTable) SetTableName(name string) *MyTable {
 	self.tableName = wrapSqlKey(name)
+	return self
+}
+
+//设置字段名
+func (self *MyTable) SetColumnNames(name [][2]string) *MyTable {
+	self.columnNames = name
 	return self
 }
 
@@ -133,7 +140,7 @@ func (self *MyTable) Truncate() error {
 }
 
 //设置插入的1行数据
-func (self *MyTable) addRow(value []string) *MyTable {
+func (self *MyTable) AddRow(value []interface{}) *MyTable {
 	for i, count := 0, len(value); i < count; i++ {
 		self.args = append(self.args, value[i])
 	}
@@ -142,22 +149,22 @@ func (self *MyTable) addRow(value []string) *MyTable {
 }
 
 //智能插入数据，每次1行
-func (self *MyTable) AutoInsert(value []string) *MyTable {
-	var nsize int
-	for _, v := range value {
-		nsize += len(v)
-	}
-	if nsize > max_allowed_packet {
-		log.Printf("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
-		return self
-	}
-	self.size += nsize
-	if self.size > max_allowed_packet {
-		//util.CheckErr(self.FlushInsert())
-		return self.AutoInsert(value)
-	}
-	return self.addRow(value)
-}
+// func (self *MyTable) AutoInsert(value []string) *MyTable {
+// 	var nsize int
+// 	for _, v := range value {
+// 		nsize += len(v)
+// 	}
+// 	if nsize > max_allowed_packet {
+// 		log.Printf("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
+// 		return self
+// 	}
+// 	self.size += nsize
+// 	if self.size > max_allowed_packet {
+// 		//util.CheckErr(self.FlushInsert())
+// 		return self.AutoInsert(value)
+// 	}
+// 	return self.AddRow(value)
+// }
 
 //向sqlCode添加"插入数据"的语句，执行前须保证Create()、AutoInsert()已经执行
 func (self *MyTable) FlushInsert() error {
@@ -217,4 +224,43 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 
 func wrapSqlKey(s string) string {
 	return "`" + strings.Replace(s, "`", "", -1) + "`"
+}
+
+func Print(rows *sql.Rows) {
+	print(rows)
+}
+
+func print(rows *sql.Rows) {
+	// for rows.Next() {
+	//  var name []interface{}
+	//  if err := rows.Scan(&name); err != nil {
+	//      log.Fatal(err)
+	//  }
+	//  fmt.Println("row is ", name)
+	// }
+	columns, err := rows.Columns()
+	if err != nil {
+		fmt.Println(columns)
+	}
+	values := make([]sql.RawBytes, len(columns))
+	scanArgs := make([]interface{}, len(values))
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+	for rows.Next() {
+		if err := rows.Scan(scanArgs...); err != nil {
+			log.Fatal(err)
+		}
+		var value string
+		for i, col := range values {
+			// Here we can check if the value is nil (NULL value)
+			if col == nil {
+				value = "NULL"
+			} else {
+				value = string(col)
+			}
+			fmt.Println(columns[i], ": ", value)
+		}
+		fmt.Println("-----------------------------------")
+	}
 }
