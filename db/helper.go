@@ -1,23 +1,30 @@
 package db
 
-type InsertInterface interface {
+import (
+	"database/sql"
+)
+
+type DBInterface interface {
 	//AutoInsert(value []string) *MyTable
 	AddRow(value []interface{}) *MyTable
 	FlushInsert() error
+	SelectAll() (*sql.Rows, error)
+	Query(string, []interface{}) ([]map[string]interface{}, error)
+	Exec(string, []interface{}) error
 }
 
 type DBHelper struct {
-	Values [][]interface{}
-	Insert InsertInterface
+	Values   [][]interface{}
+	DBDriver DBInterface
 }
 
-func (self *DBHelper) SetInsert(insert InsertInterface) {
-	self.Insert = insert
+func (self *DBHelper) SetDBDriver(insert DBInterface) {
+	self.DBDriver = insert
 }
 
 func (self *DBHelper) AutoInsert() error {
 	for _, value := range self.Values {
-		self.Insert.AddRow(value)
+		self.DBDriver.AddRow(value)
 	}
-	return self.Insert.FlushInsert()
+	return self.DBDriver.FlushInsert()
 }

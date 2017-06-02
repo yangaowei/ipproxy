@@ -226,6 +226,53 @@ func wrapSqlKey(s string) string {
 	return "`" + strings.Replace(s, "`", "", -1) + "`"
 }
 
+//查出所有符合条件的列，返回数组
+func (self *MyTable) Query(sql string, args []interface{}) (result []map[string]interface{}, err error) {
+	rows, errors := db.Query(sql, args...)
+	if errors != nil {
+		err = errors
+		return
+	}
+	return LoadsRows(rows)
+}
+
+func (self *MyTable) Exec(sql string, args []interface{}) error {
+	_, err := db.Exec(sql, args...)
+	return err
+}
+
+func LoadsRows(rows *sql.Rows) (result []map[string]interface{}, err error) {
+
+	columns, errors := rows.Columns()
+	if errors != nil {
+		err = errors
+		return
+	}
+	values := make([]sql.RawBytes, len(columns))
+	scanArgs := make([]interface{}, len(values))
+	for i := range values {
+		scanArgs[i] = &values[i]
+	}
+	for rows.Next() {
+		tmp := make(map[string]interface{})
+		if err = rows.Scan(scanArgs...); err != nil {
+			return
+		}
+		var value string
+		for i, col := range values {
+			// Here we can check if the value is nil (NULL value)
+			if col == nil {
+				value = "NULL"
+			} else {
+				value = string(col)
+			}
+			tmp[columns[i]] = value
+		}
+		result = append(result, tmp)
+	}
+	return
+}
+
 func Print(rows *sql.Rows) {
 	print(rows)
 }
