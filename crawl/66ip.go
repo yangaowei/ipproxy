@@ -1,37 +1,70 @@
 package crawl
 
 import (
+	"../utils"
+	"../utils/surfer"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/axgle/mahonia"
 	"log"
+	"strconv"
 	"strings"
 )
 
 type LLIP struct {
 	Index string //http://www.66ip.cn/
-	Url   string
+	Urls  []string
 	Type  string
 }
 
-func (self *LLIP) GetIndexList() (list []*LLIP) {
+func (self *LLIP) GetIndexList() (ip *LLIP) {
 	return
 }
-func Parse(i int, contentSelection *goquery.Selection) {
-	contentSelection.Find("td").Each(func(i int, contentSelection *goquery.Selection) {
-		log.Println(contentSelection.Text())
-	})
-	// log.Println(info)
-	// //url, _ := info.Attr("href")
-	// log.Println("IP", info.Text())
-	log.Println("-----------------------------------")
+func LLParse(i int, contentSelection *goquery.Selection) {
+	// contentSelection.Find("td").Each(func(i int, contentSelection *goquery.Selection) {
+	// 	log.Println(contentSelection.Text())
+	// })
+	info := contentSelection.Find("td")
+	if info.Size() == 5 {
+		ip := info.Nodes[0].FirstChild.Data
+		log.Println(ip)
+		if ip != "ip" {
+			port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
+			proxyTypeString := info.Nodes[3].FirstChild.Data
+			region := info.Nodes[2].FirstChild.Data
+			var proxyType int
+			if proxyTypeString == "高匿代理" {
+				proxyType = 3
+			} else {
+				proxyType = 1
+			}
+			ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: "中国", Type: proxyType}
+			log.Println(ipproxy)
+		}
+		//list = append(list, ipproxy)
+
+	}
+	//return
 }
 
 func (self *LLIP) GetIpProxyList() (list []*IpProxy) {
-	//url := self.Url
-	html := strings.NewReader("<table><tr><td>闫</td></tr><table>")
-	doc, err := goquery.NewDocumentFromReader(html)
-	if err != nil {
-		log.Fatal(err)
+	for _, url := range self.Urls {
+		request := &surfer.DefaultRequest{Url: url, TryTimes: 1, EnableCookie: true}
+		request.GetUrl()
+		//log.Println(request.GetHeader())
+		html, _ := utils.GetHtml(request)
+		log.Println(html)
+		html = mahonia.NewDecoder("gbk").ConvertString(html)
+		htmlReader := strings.NewReader(html)
+		doc, err := goquery.NewDocumentFromReader(htmlReader)
+		if err != nil {
+			log.Fatal(err)
+		}
+		doc.Find("table").Last().Find("tr").Each(LLParse)
 	}
-	doc.Find("table").Find("tr").Each(Parse)
+	return
+}
+
+func (self *LLIP) Name() (name string) {
+	name = "http://www.66ip.cn/"
 	return
 }

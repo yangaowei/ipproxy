@@ -7,8 +7,13 @@ import (
 )
 
 type Spider interface {
-	GetIpProxyList() []IpProxy
+	GetIpProxyList() []*IpProxy
+	Name() string
 }
+
+var (
+	ListIpProxy []*IpProxy
+)
 
 type IpProxy struct {
 	Ip       string
