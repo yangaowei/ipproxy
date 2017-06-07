@@ -27,13 +27,13 @@ func TestHelper(t *testing.T) {
 	// 		log.Println("结果数量：", len(result))
 	// 	}
 	// }
-	args := []interface{}{}
-	args = append(args, "127.0.0.1")
-	err := ipProxy.Exec("delete from ip where ip=?", args)
-	if err == nil {
-		result, _ := ipProxy.Query("select * from ip where ip=?", args)
-		log.Println("结果数量：", len(result))
-		log.Println("结果：", result)
-	}
+	// args := []interface{}{}
+	// args = append(args, "127.0.0.1")
+	// err := ipProxy.Exec("delete from ip where ip=?", args)
+	// if err == nil {
+	// 	result, _ := ipProxy.Query("select * from ip where ip=?", args)
+	// 	log.Println("结果数量：", len(result))
+	// 	log.Println("结果：", result)
+	// }
 
 }

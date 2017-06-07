@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"../db"
 	"../utils"
 	"../utils/surfer"
 	"github.com/PuerkitoBio/goquery"
@@ -17,6 +18,12 @@ type DataWu struct {
 var result []*IpProxy
 
 func DataParse(i int, contentSelection *goquery.Selection) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err) // 这里的err其实就是panic传入的内容
+		}
+	}()
+
 	info := contentSelection.Find("li")
 	if info.Size() == 9 {
 		ip := info.Nodes[0].FirstChild.Data
@@ -33,13 +40,26 @@ func DataParse(i int, contentSelection *goquery.Selection) {
 		} else {
 			proxyType = 1
 		}
-		ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: country, Type: proxyType}
-		log.Println(ipproxy)
+		ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: country, Type: proxyType, dbHelper: db.DBHelper{}}
+		//log.Println(ipproxy)
+		result = append(result, ipproxy)
 	}
 }
 
+func (self *DataWu) setUrls() {
+	self.Urls = []string{"http://www.data5u.com/"}
+}
+
 func (self *DataWu) GetIpProxyList() (list []*IpProxy) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err) // 这里的err其实就是panic传入的内容
+		}
+	}()
 	result = []*IpProxy{}
+	if len(self.Urls) == 0 {
+		self.setUrls()
+	}
 	for _, url := range self.Urls {
 		request := &surfer.DefaultRequest{Url: url, TryTimes: 1, EnableCookie: true}
 		request.GetUrl()
@@ -51,7 +71,7 @@ func (self *DataWu) GetIpProxyList() (list []*IpProxy) {
 		}
 		doc.Find(".l2").Each(DataParse)
 	}
-	return
+	return result
 }
 
 func (self *DataWu) Name() (name string) {
