@@ -1,9 +1,11 @@
 package main
 
 import (
+	"./check"
 	"./crawl"
 	"./db"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -11,6 +13,7 @@ var (
 	CrawlerList []crawl.Spider
 	FREQUENCY   = 10
 	mysqlTable  *db.MyTable
+	checkRule   check.CheckProxyInterface
 )
 
 func initMysql() {
@@ -58,9 +61,33 @@ func CrawlProccess() {
 	}
 }
 
+func CheckProxy() {
+	for {
+		start := time.Now()
+		nextRun := start.Add(time.Duration(FREQUENCY) * time.Second)
+		list := check.GetCheckIpProxy(mysqlTable)
+		log.Println("check ip size ", len(list))
+		for _, value := range list {
+			go func(value map[string]interface{}) {
+				//log.Println(value["ip"], value["port"])
+				ip := value["ip"].(string)
+				port := value["port"].(string)
+				p, _ := strconv.Atoi(port)
+				ipporxy := &crawl.IpProxy{Ip: ip, Port: p}
+				ipporxy.SetDBHelper(mysqlTable)
+				score := checkRule.CheckProxy(ipporxy)
+				log.Println("check ", value["ip"], score)
+				ipporxy.UpdateScore(score)
+			}(value)
+		}
+		time.Sleep(nextRun.Sub(time.Now()))
+	}
+}
+
 func init() {
 	Register()
 	initMysql()
+	checkRule = &check.BaiduCheck{}
 	log.Println("init......")
 }
 
@@ -68,6 +95,8 @@ func main() {
 	ch := make(chan int)
 	log.Println("begin crawl ip proxy")
 	log.Println("rule size ", len(CrawlerList))
-	CrawlProccess()
+	go CrawlProccess()
+	log.Println("begin check ip proxy")
+	go CheckProxy()
 	<-ch
 }

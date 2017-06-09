@@ -41,7 +41,7 @@ func (self *IpProxy) Insert(dbdriver db.DBInterface) error {
 	}
 	value := []interface{}{self.Ip, self.Port, self.Type, self.Country, self.Regin, GetCurrentTime(), GetCurrentTime(), 1}
 	self.dbHelper.Values = append(self.dbHelper.Values, value)
-	log.Println("dbHelper:", self.dbHelper)
+	//log.Println("dbHelper:", self.dbHelper)
 	return self.dbHelper.AutoInsert()
 }
 
@@ -49,7 +49,7 @@ func (self *IpProxy) Exists() (bool, error) {
 	args := []interface{}{}
 	args = append(args, self.Ip)
 	args = append(args, self.Port)
-	log.Println(args)
+	//log.Println(args)
 	result, err := self.Query("select * from ip where ip=? and port=?", args)
 	if err != nil {
 		return false, err
@@ -64,6 +64,19 @@ func (self *IpProxy) Exists() (bool, error) {
 
 func (self *IpProxy) Query(sql string, args []interface{}) ([]map[string]interface{}, error) {
 	return self.dbHelper.DBDriver.Query(sql, args)
+}
+
+func (self *IpProxy) UpdateScore(score int64) error {
+	var status int
+	sql := "update ip set status=?,score=?,lastCheckTime=? where ip=? and port=?"
+	if score > 0 {
+		status = 1
+	} else {
+		status = 2
+	}
+	args := []interface{}{status, score, GetCurrentTime(), self.Ip, self.Port}
+	log.Println(args)
+	return self.dbHelper.DBDriver.Exec(sql, args)
 }
 
 func (self *IpProxy) Exec(sql string, args []interface{}) error {

@@ -11,7 +11,7 @@ import (
 )
 
 type CheckProxyInterface interface {
-	CheckProxy(ipproxy *crawl.IpProxy) bool
+	CheckProxy(ipproxy *crawl.IpProxy) int64
 	//GetCheckIpProxy() []*crawl.IpProxy
 }
 
@@ -22,8 +22,8 @@ func init() {
 type BaiduCheck struct {
 }
 
-func getCheckIpProxy(dbHelp db.DBInterface) (ipProxyList []map[string]interface{}) {
-	lastCheckTime := time.Now().Unix() - 3600
+func GetCheckIpProxy(dbHelp db.DBInterface) (ipProxyList []map[string]interface{}) {
+	lastCheckTime := time.Now().Unix() - 10
 	log.Println(lastCheckTime)
 	sql := "select * from ip where lastCheckTime < ? and status=1"
 	args := []interface{}{}
@@ -32,23 +32,23 @@ func getCheckIpProxy(dbHelp db.DBInterface) (ipProxyList []map[string]interface{
 	return
 }
 
-func (self *BaiduCheck) CheckProxy(ipproxy *crawl.IpProxy) (result bool, score int) {
-	result = true
+func (self *BaiduCheck) CheckProxy(ipproxy *crawl.IpProxy) (score int64) {
 	begin := time.Now().UnixNano()
 	proxy := "http://" + ipproxy.Ip + ":" + strconv.Itoa(ipproxy.Port)
 	request := &surfer.DefaultRequest{Url: "https://www.baidu.com", TryTimes: 1, EnableCookie: true, Proxy: proxy, DialTimeout: time.Second * 10}
 	request.GetUrl()
 	html, err := utils.GetHtml(request)
 	end := time.Now().UnixNano()
-
-	log.Printf("check proxy %s cost %ds\n", proxy, (end-begin)/1000000000.0)
+	cost := (end - begin) / 1000000000.0
+	//log.Printf("check proxy %s cost %ds\n", proxy, cost)
+	score = 10 - cost
 	if err != nil {
-		result = false
+		score = -1
 		return
 	}
 	//log.Println(html)
 	if len(html) < 10 {
-		result = false
+		score = -1
 	}
 	return
 }
