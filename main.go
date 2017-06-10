@@ -4,6 +4,7 @@ import (
 	"./check"
 	"./crawl"
 	"./db"
+	"./web"
 	"log"
 	"strconv"
 	"time"
@@ -98,5 +99,7 @@ func main() {
 	go CrawlProccess()
 	log.Println("begin check ip proxy")
 	go CheckProxy()
+
+	go web.Run()
 	<-ch
 }
