@@ -5,7 +5,7 @@ import (
 	"../db"
 	"../utils"
 	"../utils/surfer"
-	"log"
+	//"log"
 	"strconv"
 	"time"
 )
@@ -24,7 +24,6 @@ type BaiduCheck struct {
 
 func GetCheckIpProxy(dbHelp db.DBInterface) (ipProxyList []map[string]interface{}) {
 	lastCheckTime := time.Now().Unix() - 10
-	log.Println(lastCheckTime)
 	sql := "select * from ip where lastCheckTime < ? and status=1"
 	args := []interface{}{}
 	args = append(args, lastCheckTime)

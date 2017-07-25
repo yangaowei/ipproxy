@@ -4,9 +4,12 @@ import (
 	"./check"
 	"./crawl"
 	"./db"
-	"./web"
+	//"./web"
+	//"flag"
+	logs "github.com/yangaowei/gologs"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -36,7 +39,7 @@ func startSpider(spider crawl.Spider) {
 		start := time.Now()
 		nextRun := start.Add(time.Duration(FREQUENCY) * time.Second)
 		for _, ipproxy := range spider.GetIpProxyList() {
-			log.Printf("acquire ipproxy %s:%d %d", ipproxy.Ip, ipproxy.Port, ipproxy.Type)
+			log.Printf("acquire ipproxy %s:%d %s", ipproxy.Ip, ipproxy.Port, crawl.IpType[ipproxy.Type])
 			ipproxy.SetDBHelper(mysqlTable)
 			exists, err := ipproxy.Exists()
 			if err != nil {
@@ -47,9 +50,16 @@ func startSpider(spider crawl.Spider) {
 				log.Println("this data exists ")
 				continue
 			}
+			score := checkRule.CheckProxy(ipproxy)
+			if score < 0 {
+				logs.Log.Debug("this proxy is not available %s:%d", ipproxy.Ip, ipproxy.Port)
+				continue
+			}
 			err = ipproxy.Insert(mysqlTable)
 			if err != nil {
-				log.Println("insert data errr ", err)
+				logs.Log.Debug("insert data errr %v", err)
+			} else {
+				logs.Log.Debug("insert data success %v", err)
 			}
 		}
 		time.Sleep(nextRun.Sub(time.Now()))
@@ -67,20 +77,41 @@ func CheckProxy() {
 		start := time.Now()
 		nextRun := start.Add(time.Duration(FREQUENCY) * time.Second)
 		list := check.GetCheckIpProxy(mysqlTable)
-		log.Println("check ip size ", len(list))
-		for _, value := range list {
-			go func(value map[string]interface{}) {
-				//log.Println(value["ip"], value["port"])
-				ip := value["ip"].(string)
-				port := value["port"].(string)
-				p, _ := strconv.Atoi(port)
-				ipporxy := &crawl.IpProxy{Ip: ip, Port: p}
-				ipporxy.SetDBHelper(mysqlTable)
-				score := checkRule.CheckProxy(ipporxy)
-				log.Println("check ", value["ip"], score)
-				ipporxy.UpdateScore(score)
-			}(value)
+		ipSize := len(list)
+		log.Println("check ip size ", ipSize)
+		if ipSize > 0 {
+			num := 50
+			if num > ipSize {
+				num = ipSize
+			}
+			ch := make(chan map[string]interface{}, num)
+			go func() {
+				for _, value := range list {
+					ch <- value
+				}
+			}()
+			var wg sync.WaitGroup
+			for i := 0; i < num; i++ {
+				go func() {
+					wg.Add(1)
+					if len(ch) == 0 {
+						wg.Done()
+						return
+					}
+					value := <-ch
+					ip := value["ip"].(string)
+					port := value["port"].(string)
+					p, _ := strconv.Atoi(port)
+					ipporxy := &crawl.IpProxy{Ip: ip, Port: p}
+					ipporxy.SetDBHelper(mysqlTable)
+					score := checkRule.CheckProxy(ipporxy)
+					log.Println("check ", value["ip"], score)
+					ipporxy.UpdateScore(score)
+				}()
+			}
+			wg.Wait()
 		}
+		logs.Log.Debug("Check ip proxy end")
 		time.Sleep(nextRun.Sub(time.Now()))
 	}
 }
@@ -94,12 +125,12 @@ func init() {
 
 func main() {
 	ch := make(chan int)
-	log.Println("begin crawl ip proxy")
+	logs.Log.Debug("begin crawl ip proxy")
 	log.Println("rule size ", len(CrawlerList))
-	go CrawlProccess()
-	log.Println("begin check ip proxy")
+	//go CrawlProccess()
+	// log.Println("begin check ip proxy")
 	go CheckProxy()
 
-	go web.Run()
+	// go web.Run()
 	<-ch
 }

@@ -16,7 +16,7 @@ func GetHtml(req surfer.Request) (resp string, err error) {
 		bytes, _ := ioutil.ReadAll(response.Body)
 		resp = string(bytes)
 	} else {
-		log.Println("err:", e)
+		//log.Println("err:", e)
 		resp = "resp"
 		err = e
 	}

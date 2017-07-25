@@ -1,30 +1,25 @@
 package web
 
 import (
-	"fmt"
-	"log"
+	//"../utils"
+	"github.com/gin-gonic/gin"
+	logs "github.com/yangaowei/gologs"
 	"net/http"
-	"strings"
+	"time"
 )
 
-func sayhelloName(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()       //解析参数，默认是不会解析的
-	fmt.Println(r.Form) //这些信息是输出到服务器端的打印信息
-	fmt.Println("path", r.URL.Path)
-	fmt.Println("scheme", r.URL.Scheme)
-	fmt.Println(r.Form["url_long"])
-	for k, v := range r.Form {
-		fmt.Println("key:", k)
-		fmt.Println("val:", strings.Join(v, ""))
-	}
-	fmt.Fprintf(w, "Hello astaxie!") //这个写入到w的是输出到客户端的
+func test(c *gin.Context) {
+	logs.Log.Informational("start:", time.Now())
+	//time.Sleep(5 * time.Second)
+	logs.Log.Informational("end:", time.Now())
+	c.String(http.StatusOK, "Hello World!")
 }
 
 func Run() {
-	http.HandleFunc("/", sayhelloName) //设置访问的路由
-	log.Println("start web on 9090")
-	err := http.ListenAndServe(":9090", nil) //设置监听的端口
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
+	router := gin.Default()
+	router.GET("/", test)
+	router.StaticFile("/favicon.ico", "./web/resources/favicon.ico")
+	logs.Log.Debug("start web server on port %d", 8001)
+	router.Run(":8001")
+
 }
