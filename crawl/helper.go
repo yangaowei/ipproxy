@@ -37,7 +37,6 @@ func (self *IpProxy) Insert(dbdriver db.DBInterface) error {
 	self.dbHelper.SetDBDriver(dbdriver)
 	exists, _ := self.Exists()
 	if exists {
-		log.Println("this data exists ")
 		return nil
 	}
 	value := []interface{}{self.Ip, self.Port, self.Type, self.Country, self.Regin, GetCurrentTime(), GetCurrentTime(), 1}

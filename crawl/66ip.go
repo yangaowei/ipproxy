@@ -19,32 +19,30 @@ type LLIP struct {
 func (self *LLIP) GetIndexList() (ip *LLIP) {
 	return
 }
-func LLParse(i int, contentSelection *goquery.Selection) {
-	// contentSelection.Find("td").Each(func(i int, contentSelection *goquery.Selection) {
-	// 	log.Println(contentSelection.Text())
-	// })
-	info := contentSelection.Find("td")
-	if info.Size() == 5 {
-		ip := info.Nodes[0].FirstChild.Data
-		log.Println(ip)
-		if ip != "ip" {
-			port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
-			proxyTypeString := info.Nodes[3].FirstChild.Data
-			region := info.Nodes[2].FirstChild.Data
-			var proxyType int
-			if proxyTypeString == "高匿代理" {
-				proxyType = 3
-			} else {
-				proxyType = 1
-			}
-			ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: "中国", Type: proxyType}
-			log.Println(ipproxy)
-		}
-		//list = append(list, ipproxy)
 
-	}
-	//return
-}
+// func LLParse(i int, contentSelection *goquery.Selection) {
+// 	// contentSelection.Find("td").Each(func(i int, contentSelection *goquery.Selection) {
+// 	// 	log.Println(contentSelection.Text())
+// 	// })
+// 	info := contentSelection.Find("td")
+// 	if info.Size() == 5 {
+// 		ip := info.Nodes[0].FirstChild.Data
+// 		if ip != "ip" {
+// 			port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
+// 			proxyTypeString := info.Nodes[3].FirstChild.Data
+// 			region := info.Nodes[2].FirstChild.Data
+// 			var proxyType int
+// 			if proxyTypeString == "高匿代理" {
+// 				proxyType = 3
+// 			} else {
+// 				proxyType = 1
+// 			}
+// 			ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: "中国", Type: proxyType}
+// 			result = append(result, ipproxy)
+// 		}
+// 	}
+// 	//return
+// }
 
 func (self *LLIP) GetIpProxyList() (list []*IpProxy) {
 	for _, url := range self.Urls {
@@ -52,14 +50,35 @@ func (self *LLIP) GetIpProxyList() (list []*IpProxy) {
 		request.GetUrl()
 		//log.Println(request.GetHeader())
 		html, _ := utils.GetHtml(request)
-		log.Println(html)
 		html = mahonia.NewDecoder("gbk").ConvertString(html)
 		htmlReader := strings.NewReader(html)
 		doc, err := goquery.NewDocumentFromReader(htmlReader)
 		if err != nil {
 			log.Fatal(err)
 		}
-		doc.Find("table").Last().Find("tr").Each(LLParse)
+		doc.Find("table").Last().Find("tr").Each(func(i int, contentSelection *goquery.Selection) {
+			// contentSelection.Find("td").Each(func(i int, contentSelection *goquery.Selection) {
+			// 	log.Println(contentSelection.Text())
+			// })
+			info := contentSelection.Find("td")
+			if info.Size() == 5 {
+				ip := info.Nodes[0].FirstChild.Data
+				if ip != "ip" {
+					port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
+					proxyTypeString := info.Nodes[3].FirstChild.Data
+					region := info.Nodes[2].FirstChild.Data
+					var proxyType int
+					if proxyTypeString == "高匿代理" {
+						proxyType = 3
+					} else {
+						proxyType = 1
+					}
+					ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: "中国", Type: proxyType}
+					list = append(list, ipproxy)
+				}
+			}
+			//return
+		})
 	}
 	return
 }

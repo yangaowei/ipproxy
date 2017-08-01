@@ -4,8 +4,8 @@ import (
 	"./check"
 	"./crawl"
 	"./db"
-	//"./web"
-	//"flag"
+	"./web"
+	"flag"
 	logs "github.com/yangaowei/gologs"
 	"log"
 	"strconv"
@@ -18,6 +18,7 @@ var (
 	FREQUENCY   = 10
 	mysqlTable  *db.MyTable
 	checkRule   check.CheckProxyInterface
+	task        string
 )
 
 func initMysql() {
@@ -30,8 +31,8 @@ func initMysql() {
 
 func Register() {
 
-	CrawlerList = append(CrawlerList, &crawl.DataWu{})
-	//CrawlerList = append(CrawlerList, &crawl.LLIP{})
+	//CrawlerList = append(CrawlerList, &crawl.DataWu{})
+	CrawlerList = append(CrawlerList, &crawl.LLIP{Urls: []string{"http://www.66ip.cn/areaindex_1/index.html"}})
 }
 
 func startSpider(spider crawl.Spider) {
@@ -39,7 +40,7 @@ func startSpider(spider crawl.Spider) {
 		start := time.Now()
 		nextRun := start.Add(time.Duration(FREQUENCY) * time.Second)
 		for _, ipproxy := range spider.GetIpProxyList() {
-			log.Printf("acquire ipproxy %s:%d %s", ipproxy.Ip, ipproxy.Port, crawl.IpType[ipproxy.Type])
+			logs.Log.Debug("acquire ipproxy %s:%d %s", ipproxy.Ip, ipproxy.Port, crawl.IpType[ipproxy.Type])
 			ipproxy.SetDBHelper(mysqlTable)
 			exists, err := ipproxy.Exists()
 			if err != nil {
@@ -47,7 +48,6 @@ func startSpider(spider crawl.Spider) {
 				continue
 			}
 			if exists {
-				log.Println("this data exists ")
 				continue
 			}
 			score := checkRule.CheckProxy(ipproxy)
@@ -120,17 +120,24 @@ func init() {
 	Register()
 	initMysql()
 	checkRule = &check.BaiduCheck{}
+	flag.StringVar(&task, "task", "all", "help task")
+	flag.Parse()
 	log.Println("init......")
 }
 
 func main() {
 	ch := make(chan int)
-	logs.Log.Debug("begin crawl ip proxy")
+	logs.Log.Debug("start service with %s", task)
 	log.Println("rule size ", len(CrawlerList))
-	//go CrawlProccess()
-	// log.Println("begin check ip proxy")
-	go CheckProxy()
 
-	// go web.Run()
+	if task == "crawl" {
+		go CrawlProccess()
+	}
+	if task == "check" {
+		go CheckProxy()
+	}
+	if task == "web" {
+		go web.Run()
+	}
 	<-ch
 }

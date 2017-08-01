@@ -15,36 +15,34 @@ type DataWu struct {
 	LLIP
 }
 
-var result []*IpProxy
+// func DataParse(i int, contentSelection *goquery.Selection) {
+// 	defer func() {
+// 		if err := recover(); err != nil {
+// 			log.Println(err) // 这里的err其实就是panic传入的内容
+// 		}
+// 	}()
 
-func DataParse(i int, contentSelection *goquery.Selection) {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println(err) // 这里的err其实就是panic传入的内容
-		}
-	}()
-
-	info := contentSelection.Find("li")
-	if info.Size() == 9 {
-		ip := info.Nodes[0].FirstChild.Data
-		port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
-		aText := info.Find("a")
-		region := aText.Nodes[3].FirstChild.Data
-		proxyTypeString := aText.Nodes[0].FirstChild.Data
-		country := aText.Nodes[2].FirstChild.Data
-		var proxyType int
-		if proxyTypeString == "匿名" {
-			proxyType = 2
-		} else if proxyTypeString == "高匿" {
-			proxyType = 3
-		} else {
-			proxyType = 1
-		}
-		ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: country, Type: proxyType, dbHelper: db.DBHelper{}}
-		//log.Println(ipproxy)
-		result = append(result, ipproxy)
-	}
-}
+// 	info := contentSelection.Find("li")
+// 	if info.Size() == 9 {
+// 		ip := info.Nodes[0].FirstChild.Data
+// 		port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
+// 		aText := info.Find("a")
+// 		region := aText.Nodes[3].FirstChild.Data
+// 		proxyTypeString := aText.Nodes[0].FirstChild.Data
+// 		country := aText.Nodes[2].FirstChild.Data
+// 		var proxyType int
+// 		if proxyTypeString == "匿名" {
+// 			proxyType = 2
+// 		} else if proxyTypeString == "高匿" {
+// 			proxyType = 3
+// 		} else {
+// 			proxyType = 1
+// 		}
+// 		ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: country, Type: proxyType, dbHelper: db.DBHelper{}}
+// 		//log.Println(ipproxy)
+// 		result = append(result, ipproxy)
+// 	}
+// }
 
 func (self *DataWu) setUrls() {
 	self.Urls = []string{"http://www.data5u.com/"}
@@ -56,7 +54,6 @@ func (self *DataWu) GetIpProxyList() (list []*IpProxy) {
 			log.Println(err) // 这里的err其实就是panic传入的内容
 		}
 	}()
-	result = []*IpProxy{}
 	if len(self.Urls) == 0 {
 		self.setUrls()
 	}
@@ -69,9 +66,36 @@ func (self *DataWu) GetIpProxyList() (list []*IpProxy) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		doc.Find(".l2").Each(DataParse)
+		doc.Find(".l2").Each(func(i int, contentSelection *goquery.Selection) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Println(err) // 这里的err其实就是panic传入的内容
+				}
+			}()
+
+			info := contentSelection.Find("li")
+			if info.Size() == 9 {
+				ip := info.Nodes[0].FirstChild.Data
+				port, _ := strconv.Atoi(info.Nodes[1].FirstChild.Data)
+				aText := info.Find("a")
+				region := aText.Nodes[3].FirstChild.Data
+				proxyTypeString := aText.Nodes[0].FirstChild.Data
+				country := aText.Nodes[2].FirstChild.Data
+				var proxyType int
+				if proxyTypeString == "匿名" {
+					proxyType = 2
+				} else if proxyTypeString == "高匿" {
+					proxyType = 3
+				} else {
+					proxyType = 1
+				}
+				ipproxy := &IpProxy{Ip: ip, Port: port, Regin: region, Country: country, Type: proxyType, dbHelper: db.DBHelper{}}
+				//log.Println(ipproxy)
+				list = append(list, ipproxy)
+			}
+		})
 	}
-	return result
+	return
 }
 
 func (self *DataWu) Name() (name string) {
