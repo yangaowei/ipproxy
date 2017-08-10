@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	logs "github.com/yangaowei/gologs"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -30,21 +32,29 @@ func test(c *gin.Context) {
 }
 
 func proxy(c *gin.Context) {
-	size := c.DefaultQuery("size", "1")
+	size, _ := strconv.ParseInt(c.DefaultQuery("size", "1"), 10, 64)
 	dbHelp := mysqlTable
 	lastCheckTime := time.Now().Unix() - 10
-	sql := "select * from ip where lastCheckTime < ? and status=1 limit ?"
+	sql := "select * from ip where lastCheckTime < ? and status=1"
 	args := []interface{}{}
-	args = append(args, lastCheckTime, size)
+	args = append(args, lastCheckTime)
 	ipProxyList, _ := dbHelp.Query(sql, args)
-	logs.Log.Debug("%d", len(ipProxyList))
 	result := make(map[string]interface{})
 	ips := []string{}
 	for _, p := range ipProxyList {
 		ips = append(ips, fmt.Sprintf("%s:%s", p["ip"], p["port"]))
 	}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	x := int64(len(ips))
+	//logs.Log.Debug("%s %s", r, x)
+	if size < x {
+		start := r.Int63n(x - size)
+		ips = ips[start : start+size]
+		logs.Log.Debug("start %d", start)
+	}
 	result["msg"] = "success"
 	result["ips"] = ips
+
 	c.JSON(http.StatusOK, result)
 }
 
