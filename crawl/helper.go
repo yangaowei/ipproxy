@@ -13,7 +13,7 @@ type Spider interface {
 
 var (
 	ListIpProxy []*IpProxy
-	IpType      = map[int]string{1: "透明", 2: "匿名", 3: "高匿"}
+	IpType      = map[string]int{"透明": 1, "匿名": 2, "高匿": 3}
 )
 
 type IpProxy struct {
