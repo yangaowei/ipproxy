@@ -3,8 +3,10 @@ package utils
 import (
 	"./surfer"
 	"encoding/json"
+	logs "github.com/yangaowei/gologs"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"regexp"
 )
 
@@ -21,6 +23,19 @@ func GetHtml(req surfer.Request) (resp string, err error) {
 		err = e
 	}
 	return resp, err
+}
+
+func GetContent(url string, data map[string]interface{}) (resp string, err error) {
+	request := &surfer.DefaultRequest{Url: url, TryTimes: 3}
+	if value, ok := data["proxy"]; ok {
+		request.Proxy = value.(string)
+	}
+	if header, ok := data["header"]; ok {
+		logs.Log.Debug("header %v", data["header"])
+		request.Header = header.(http.Header)
+	}
+	request.GetUrl()
+	return GetHtml(request)
 }
 
 //正则表达式相关内容

@@ -2,6 +2,8 @@ package crawl
 
 import (
 	"../db"
+	"../utils"
+	simplejson "github.com/bitly/go-simplejson"
 	"log"
 	"time"
 )
@@ -15,6 +17,13 @@ var (
 	ListIpProxy []*IpProxy
 	IpType      = map[string]int{"透明": 1, "匿名": 2, "高匿": 3}
 )
+
+func BuildJson(url string) (json *simplejson.Json, err error) {
+	video_html, err := utils.GetContent(url, nil)
+	bjson := []byte(video_html)
+	json, err = simplejson.NewJson(bjson)
+	return
+}
 
 type IpProxy struct {
 	Ip       string
